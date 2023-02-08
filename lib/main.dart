@@ -2,6 +2,10 @@ import 'package:animated_background/animated_background.dart';
 import 'package:filthm/effect/rain_behavior.dart';
 import 'package:filthm/widgets/button.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:just_audio/just_audio.dart';
+
+AudioPlayer? gamePlayer;
 
 void main() {
   runApp(const Game());
@@ -40,6 +44,27 @@ var menu = [
 int pageIndex = 0;
 
 class _HomeState extends State<Home> with TickerProviderStateMixin {
+  @override
+  void initState() {
+    gamePlayer = AudioPlayer();
+    //发出提示音
+    gamePlayer
+      ?..setUrl('asset:///sounds/SongSelect.mp3')
+      ..setLoopMode(LoopMode.one)
+      ..play();
+    SystemChrome.setEnabledSystemUIMode(
+      //默认隐藏，若从边缘滑动会显示，过会儿会自动隐藏（安卓，iOS）
+      SystemUiMode.immersiveSticky,
+    );
+    // 强制横屏
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
