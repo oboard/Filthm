@@ -1,7 +1,11 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:animated_background/animated_background.dart';
 import 'package:filthm/effect/rain_behavior.dart';
+import 'package:filthm/loader/directory_create.dart';
+import 'package:filthm/loader/path.dart';
+import 'package:filthm/model/beatmap.dart' hide LineDirection;
 import 'package:filthm/setting.dart';
 import 'package:filthm/widgets/button.dart';
 import 'package:flutter/material.dart';
@@ -47,6 +51,7 @@ var menu = [
 ];
 
 int pageIndex = 0;
+List<BeatmapModel> songList = [BeatmapModel()];
 
 class _HomeState extends State<Home> with TickerProviderStateMixin {
   @override
@@ -60,13 +65,49 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
-
+    gameLoad();
     super.initState();
   }
 
   var loaded = false;
 
-  void gameLoad() {
+  String gamePath = '';
+
+  void recursionFile(String pathName) {
+    Directory dir = Directory(pathName);
+
+    if (!dir.existsSync()) {
+      return;
+    }
+
+    List<FileSystemEntity> lists = dir.listSync();
+    for (FileSystemEntity entity in lists) {
+      if (entity is File) {
+        File file = entity;
+        if (file.path.endsWith('milthm')) {
+          BeatmapModel beatmapModel =
+              BeatmapModel.fromJson(jsonDecode(file.readAsStringSync()));
+          beatmapModel.dirPath = pathName;
+          beatmapModel.filePath = file.path;
+          songList.add(beatmapModel);
+          setState(() {});
+        }
+        print(file.path);
+      } else if (entity is Directory) {
+        Directory subDir = entity;
+        recursionFile(subDir.path);
+      }
+    }
+  }
+
+  Future<void> gameLoad() async {
+    await checkAndCreateImportDictory();
+    gamePath = await getGamePath();
+
+    songList.clear();
+    recursionFile(gamePath);
+    songList.add(BeatmapModel());
+
     if (!Platform.isMacOS) {
       gamePlayer = AudioPlayer();
       //发出提示音
@@ -75,6 +116,7 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
         ..setLoopMode(LoopMode.one)
         ..play();
     }
+
     loaded = true;
   }
 
@@ -163,76 +205,158 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                         fit: BoxFit.contain,
                       ),
                       ListView.builder(
-                        itemCount: 1,
+                        itemCount: songList.length,
                         padding: const EdgeInsets.symmetric(vertical: 32),
                         itemBuilder: (context, index) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 16,
-                              horizontal: 32,
-                            ),
-                            child: MyButton(
-                              onPressed: () => pickSongFile(),
-                              child: Container(
-                                height: size.height / 2,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                  horizontal: 32,
-                                ),
-                                decoration: BoxDecoration(
-                                    borderRadius: GameSettings.borderRadius,
-                                    gradient: const LinearGradient(
-                                      colors: [
-                                        Color(0xffe8effd),
-                                        Color(0xffede8fc),
-                                      ],
-                                      begin: Alignment(0, 0),
-                                      end: Alignment(1, 1),
-                                    ),
-                                    boxShadow: const [
-                                      BoxShadow(
-                                        color: Color(0x22000000),
-                                        blurRadius: 20,
-                                      )
-                                    ]),
-                                child: Column(
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.start,
-                                      children: const [
-                                        Icon(
-                                          Icons.star,
-                                          size: 128,
+                          BeatmapModel beatmapModel = songList[index];
+                          if (index == songList.length - 1) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 16,
+                                horizontal: 32,
+                              ),
+                              child: MyButton(
+                                onPressed: () {
+                                  pickSongFile().then((value) => gameLoad());
+                                },
+                                child: Container(
+                                  height: size.height / 2,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                    horizontal: 32,
+                                  ),
+                                  decoration: BoxDecoration(
+                                      borderRadius: GameSettings.borderRadius,
+                                      gradient: const LinearGradient(
+                                        colors: [
+                                          Color(0xffe8effd),
+                                          Color(0xffede8fc),
+                                        ],
+                                        begin: Alignment(0, 0),
+                                        end: Alignment(1, 1),
+                                      ),
+                                      boxShadow: const [
+                                        BoxShadow(
+                                          color: Color(0x22000000),
+                                          blurRadius: 20,
                                         )
-                                      ],
-                                    ),
-                                    const Expanded(
-                                      child: Center(
-                                        child: Text(
-                                          '触摸此处/拖入\n导入谱面',
-                                          style: TextStyle(
-                                            fontSize: 32,
-                                            color: Color(0xff75777e),
-                                            fontWeight: FontWeight.bold,
+                                      ]),
+                                  child: Row(
+                                    children: [
+                                      Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.start,
+                                        children: const [
+                                          Icon(
+                                            Icons.star,
+                                            size: 128,
+                                          )
+                                        ],
+                                      ),
+                                      const Expanded(
+                                        child: Center(
+                                          child: Text(
+                                            '触摸此处/拖入\n导入谱面',
+                                            style: TextStyle(
+                                              fontSize: 32,
+                                              color: Color(0xff75777e),
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: const [
-                                        Icon(
-                                          Icons.star_purple500,
-                                          size: 128,
-                                          color: Color.fromARGB(100, 0, 0, 0),
-                                        )
-                                      ],
-                                    ),
-                                  ],
+                                      Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.end,
+                                        children: const [
+                                          Icon(
+                                            Icons.star_purple500,
+                                            size: 128,
+                                            color: Color.fromARGB(100, 0, 0, 0),
+                                          )
+                                        ],
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
+                            );
+                          }
+
+                          return Column(
+                            children: [
+                              Container(
+                                height: size.height / 2,
+                                margin: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                  horizontal: 32,
+                                ),
+                                child: MyButton(
+                                  onPressed: () => openSongMenu(),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: GameSettings.borderRadius,
+                                      boxShadow: const [
+                                        BoxShadow(
+                                          color: Color(0x22000000),
+                                          blurRadius: 20,
+                                        ),
+                                      ],
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: GameSettings.borderRadius,
+                                      child: Stack(
+                                        children: [
+                                          // Text(
+                                          //     '${beatmapModel.dirPath}/${beatmapModel.illustrationFile ?? ''}'),
+                                          Image.file(
+                                            File(
+                                                '${beatmapModel.dirPath}/${beatmapModel.illustrationFile ?? ''}'),
+                                            fit: BoxFit.cover,
+                                            width: double.infinity,
+                                            height: double.infinity,
+                                          ),
+                                          Column(
+                                            children: [],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  left: 64,
+                                  right: 64,
+                                  bottom: 16,
+                                ),
+                                child: Row(children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          beatmapModel.title ?? '',
+                                          style: const TextStyle(fontSize: 16),
+                                        ),
+                                        Text(
+                                          beatmapModel.beatmapper ?? '',
+                                          style: const TextStyle(
+                                              color: Color(0x66000000)),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Text(
+                                    beatmapModel.bpmList.length.toString(),
+                                    style: const TextStyle(
+                                        fontSize: 32, color: Color(0x66000000)),
+                                  ),
+                                ]),
+                              )
+                            ],
                           );
                         },
                       ),
@@ -255,4 +379,6 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
       ),
     );
   }
+
+  openSongMenu() {}
 }

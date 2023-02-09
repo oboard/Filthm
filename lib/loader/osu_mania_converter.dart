@@ -5,7 +5,8 @@ import 'package:filthm/model/beatmap.dart';
 import '../setting.dart';
 
 class OsuManiaConverter {
-  static bool convert(String path, String filePath, {double flowSpeed = 9.0}) {
+  static Future<bool> convert(String path, String filePath,
+      {double flowSpeed = 9.0}) async {
     File file = File(filePath);
     List<String> data = file.readAsStringSync().split(RegExp(r'\n|\r'));
     bool start = false;
@@ -75,13 +76,17 @@ class OsuManiaConverter {
         readBg = true;
         continue;
       }
-
-      if (!line.startsWith("//") && readBg && !line.startsWith("Video")) {
+      if (line.startsWith("[") && readBg) {
         readBg = false;
-        var ls = line.split('"');
-        if (ls.length > 1) {
-          model.illustrationFile = line.split('"')[1];
-        }
+        continue;
+      }
+
+      if (!line.startsWith("//") &&
+          readBg &&
+          !line.startsWith("Video") &&
+          line.isNotEmpty) {
+        readBg = false;
+        model.illustrationFile = line.split('"')[1];
       }
 
       if (line.startsWith("Mode:")) {
@@ -168,7 +173,7 @@ class OsuManiaConverter {
       if (line == "[HitObjects]") start = true;
     }
 
-    model.export('$filePath.milthm');
+    await model.export('$filePath.milthm');
 
     return true;
   }

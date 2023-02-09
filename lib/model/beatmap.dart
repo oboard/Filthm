@@ -49,9 +49,12 @@ class NoteData {
     line = json?['Line'];
     bpm = json?['BPM'];
     snd = json?['Snd'];
-
-    from = json?['From'];
-    to = json?['To'];
+    json?['From'].forEach((v) {
+      from.add(v);
+    });
+    json?['To'].forEach((v) {
+      to.add(v);
+    });
   }
 
   Map<String, dynamic> toJson() {
@@ -142,6 +145,9 @@ class BeatmapModel {
   String formatVersion = '';
   String sndSet = '';
 
+  String filePath = '';
+  String dirPath = '';
+
   List<BPMData> bpmList = [];
 
   List<NoteData> noteList = [];
@@ -169,10 +175,10 @@ class BeatmapModel {
     this.sndSet = '',
   });
 
-  void export(String filePath) {
+  Future<void> export(String filePath) async {
     File file = File(filePath);
     print(filePath);
-    file.writeAsString(jsonEncode(toJson()));
+    await file.writeAsString(jsonEncode(toJson()));
   }
 
   int determineBPM(double time) {

@@ -1,14 +1,13 @@
 import 'dart:io';
 
-import 'package:path_provider/path_provider.dart';
+import 'path.dart';
 
 Future<void> checkAndCreateImportDictory() async {
-  Directory appDocDir = await getApplicationDocumentsDirectory();
-  String appDocPath = appDocDir.path;
-  if (!Directory('$appDocPath/milthm').existsSync()) {
-    await Directory('$appDocPath/milthm').create();
+  String appDocPath = await getGamePath();
+  if (!Directory(appDocPath).existsSync()) {
+    await Directory(appDocPath).create();
   }
-  if (!Directory('$appDocPath/milthm/imports').existsSync()) {
-    await Directory('$appDocPath/milthm/imports').create();
+  if (!Directory('$appDocPath/imports').existsSync()) {
+    await Directory('$appDocPath/imports').create();
   }
 }

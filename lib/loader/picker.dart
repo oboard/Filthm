@@ -10,7 +10,7 @@ import '../utils/luid_util.dart';
 import 'osu_mania_converter.dart';
 
 Future<void> pickSongFile() async {
-  checkAndCreateImportDictory();
+  await checkAndCreateImportDictory();
 
   const XTypeGroup typeGroup = XTypeGroup(
     label: 'songs',
@@ -51,25 +51,25 @@ Future<void> archiveToImports(bytes) async {
             .replaceAll("\r", "")
             .trim();
         if (mode == "3") {
-          // Osu!Mania���棬��ʼת��
-          importOsuMania('$appDocPath/milthm/imports/$id');
+          // Osu!Mania
+          await importOsuMania('$appDocPath/milthm/imports/$id');
           break;
         }
       } else if (file.name.toLowerCase().endsWith(".milthm")) {
         break;
       }
     } else {
-      Directory('$appDocPath/milthm/imports/$id/${file.name}')
+      await Directory('$appDocPath/milthm/imports/$id/${file.name}')
           .create(recursive: true);
     }
   }
 }
 
-void importOsuMania(String path) {
+Future<void> importOsuMania(String path) async {
   for (var f in Directory(path).listSync()) {
     if (f.path.toLowerCase().endsWith(".osu")) {
-      OsuManiaConverter.convert(path, f.path);
-      File(f.path).delete();
+      await OsuManiaConverter.convert(path, f.path);
+      await File(f.path).delete();
     }
   }
 }
