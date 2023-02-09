@@ -7,20 +7,20 @@ import '../setting.dart';
 const Duration kFadeOutDuration = Duration(milliseconds: 50);
 const Duration kFadeInDuration = Duration(milliseconds: 200);
 const Duration kScaleOutDuration = Duration(milliseconds: 0);
-const Duration kScaleInDuration = Duration(milliseconds: 200);
+const Duration kScaleInDuration = Duration(milliseconds: 500);
 final Tween<double> _opacityTween = Tween<double>(begin: 1.0, end: 0.5);
 final Tween<double> _scaleTween = Tween<double>(begin: 1.0, end: 0.9);
 const double kMinInteractiveDimensionLazy = 44;
 
-class LazyButtonS extends StatefulWidget {
-  const LazyButtonS({
+class MyButton extends StatefulWidget {
+  const MyButton({
     Key? key,
     required this.child,
     this.padding,
     this.color,
     this.disabledColor,
     this.align = Alignment.center,
-    this.borderRadius = const BorderRadius.all(Radius.circular(16.0)),
+    this.borderRadius,
     this.onPressed,
     this.icon,
     this.onTapDown,
@@ -29,12 +29,12 @@ class LazyButtonS extends StatefulWidget {
   })  : isIcon = false,
         super(key: key);
 
-  const LazyButtonS.icon({
+  const MyButton.icon({
     Key? key,
     this.child,
     this.padding,
     this.disabledColor,
-    this.borderRadius = const BorderRadius.all(Radius.circular(16.0)),
+    this.borderRadius,
     required this.onPressed,
     this.icon,
     this.align = Alignment.center,
@@ -57,13 +57,13 @@ class LazyButtonS extends StatefulWidget {
   final GestureTapDownCallback? onTapDown;
   final GestureTapCancelCallback? onTapCancel;
 
-  final BorderRadius borderRadius;
+  final BorderRadius? borderRadius;
   final bool isIcon;
 
   bool get enabled => onPressed != null;
 
   @override
-  LazyButtonSState createState() => LazyButtonSState();
+  MyButtonState createState() => MyButtonState();
 
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
@@ -73,8 +73,7 @@ class LazyButtonS extends StatefulWidget {
   }
 }
 
-class LazyButtonSState extends State<LazyButtonS>
-    with TickerProviderStateMixin {
+class MyButtonState extends State<MyButton> with TickerProviderStateMixin {
   AnimationController? _animationController;
   late Animation<double> _scaleAnimation;
   bool _hovering = false;
@@ -194,44 +193,18 @@ class LazyButtonSState extends State<LazyButtonS>
               child: Stack(
                 children: [
                   Padding(
-                    padding: widget.padding ??
-                        ((widget.isIcon)
-                            ? const EdgeInsets.only(
-                                left: 16,
-                                right: 16,
-                                top: 12,
-                                bottom: 12,
-                              )
-                            : const EdgeInsets.only(left: 16, right: 16)),
-                    child: widget.isIcon
-                        ? (widget.child == null && widget.isIcon
-                            ? IconTheme.merge(
-                                data: theme.primaryIconTheme.copyWith(
-                                  color: currentColor,
-                                ),
-                                child: widget.icon!,
-                              )
-                            : Row(
-                                // mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconTheme.merge(
-                                    data: theme.primaryIconTheme.copyWith(
-                                      color: currentColor,
-                                    ),
-                                    child: widget.icon!,
-                                  ),
-                                  Expanded(
-                                    child: widget.child!,
-                                  ),
-                                ],
-                              ))
-                        : widget.child,
+                    padding: widget.padding ?? EdgeInsets.zero,
+                    child: widget.child,
                   ),
                   Positioned.fill(
                     child: AnimatedContainer(
                       decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        // borderRadius: Setting.borderRadius,
+                        shape: widget.isIcon
+                            ? BoxShape.circle
+                            : BoxShape.rectangle,
+                        borderRadius: widget.isIcon
+                            ? null
+                            : (widget.borderRadius ?? Setting.borderRadius),
                         color: (_hasFocus || _hovering)
                             ? theme.focusColor
                             : Colors.transparent,

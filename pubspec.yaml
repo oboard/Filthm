@@ -27,6 +27,9 @@ dependencies:
   just_audio: ^0.9.31
   animated_background: ^2.0.0
   meta: ^1.8.0
+  file_selector: ^0.9.2+2
+  path_provider: ^2.0.12
+  archive: ^3.3.6
 
 dev_dependencies:
   flutter_test:
@@ -50,6 +53,7 @@ flutter:
   assets:
     - images/songselect3.png
     - images/person.png
+    - images/decoration_line.png
     - sounds/SongSelect.mp3
 
   # An image asset can refer to one or more resolution-specific "variants", see
