@@ -5,20 +5,63 @@ import 'package:filthm/utils/luid_util.dart';
 import 'dart:math' as math;
 
 class BPMData {
-  double from = 0, to = 0;
+  double start = 0;
   double bpm = 60;
+
+  BPMData({this.start = 0, this.bpm = 60});
+
+  BPMData.fromJson(Map<String, dynamic>? json) {
+    bpm = json?['BPM'];
+    start = json?['Start'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['BPM'] = bpm;
+    data['Start'] = start;
+    return data;
+  }
 }
 
 class NoteData {
   int line = 0;
   List<int> from = [], to = [];
   int bpm = 60;
+  String snd = '';
+
+  NoteData({
+    this.line = 0,
+    this.from = const [],
+    this.to = const [],
+    this.bpm = 60,
+    this.snd = '',
+  });
+
   double get fromBeat {
     return from[0] + from[1] * 1.0 / from[2];
   }
 
   double get toBeat {
     return to[0] + to[1] * 1.0 / to[2];
+  }
+
+  NoteData.fromJson(Map<String, dynamic>? json) {
+    line = json?['Line'];
+    bpm = json?['BPM'];
+    snd = json?['Snd'];
+
+    from = json?['From'];
+    to = json?['To'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['Line'] = line;
+    data['BPM'] = bpm;
+    data['Snd'] = snd;
+    data['From'] = from;
+    data['To'] = to;
+    return data;
   }
 }
 
@@ -32,6 +75,28 @@ enum LineDirection {
 class LineData {
   LineDirection? direction;
   double? flowSpeed;
+  LineData(this.direction, this.flowSpeed);
+  LineData.fromJson(Map<String, dynamic>? json) {
+    direction = [
+      LineDirection.left,
+      LineDirection.right,
+      LineDirection.up,
+      LineDirection.down
+    ][json?['Direction']];
+    flowSpeed = json?['FlowSpeed'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['Direction'] = {
+      LineDirection.left: 0,
+      LineDirection.right: 1,
+      LineDirection.up: 2,
+      LineDirection.down: 3
+    }[direction];
+    data['FlowSpeed'] = flowSpeed;
+    return data;
+  }
 }
 
 enum PerformanceOperation {
@@ -73,6 +138,9 @@ class BeatmapModel {
   String? gameSource;
   double? previewTime = -1;
   double? songLength = 0;
+  double songOffset = 0;
+  String formatVersion = '';
+  String sndSet = '';
 
   List<BPMData> bpmList = [];
 
@@ -96,10 +164,14 @@ class BeatmapModel {
     this.gameSource,
     this.previewTime,
     this.songLength,
+    this.songOffset = 0,
+    this.formatVersion = '',
+    this.sndSet = '',
   });
 
-  void export(String path) {
-    File file = File(path);
+  void export(String filePath) {
+    File file = File(filePath);
+    print(filePath);
     file.writeAsString(jsonEncode(toJson()));
   }
 
@@ -107,17 +179,28 @@ class BeatmapModel {
     if (bpmList.length == 1) {
       return 0;
     } else {
-      return bpmList.indexWhere((x) => x.from <= time && x.to >= time);
+      int ret = 0;
+      for (int i = 0; i < bpmList.length; i++) {
+        if (time < bpmList[i].start) {
+          break;
+        } else {
+          ret = i;
+        }
+      }
+      return ret;
     }
   }
 
-  List<int> convertByBPM(double time, int beat) {
-    BPMData bpmData = bpmList[determineBPM(time)];
-    double beatTime = 60 / (bpmData.bpm);
-    int basebeat = (time - (bpmData.from) / beatTime).round();
+  List<int> convertByBPM(double time, int beat, {int bpm = -1}) {
+    if (bpm == -1) {
+      bpm = determineBPM(time);
+    }
+    BPMData bpmData = bpmList[bpm];
+    double beattime = 60.0 / bpmData.bpm;
+    int basebeat = (time - bpmData.start) ~/ beattime;
     return [
       basebeat,
-      ((time - (bpmData.from) - basebeat * beatTime) / (beatTime / beat))
+      ((time - bpmData.start - basebeat * beattime) / (beattime / beat))
           .round(),
       beat
     ];
@@ -125,8 +208,8 @@ class BeatmapModel {
 
   List<double> toRealTime(NoteData note) {
     return [
-      bpmList[note.bpm].from + note.fromBeat * (60.0 / bpmList[note.bpm].bpm),
-      bpmList[note.bpm].from + note.toBeat * (60 / bpmList[note.bpm].bpm)
+      bpmList[note.bpm].start + note.fromBeat * (60.0 / bpmList[note.bpm].bpm),
+      bpmList[note.bpm].start + note.toBeat * (60.0 / bpmList[note.bpm].bpm)
     ];
   }
 
@@ -142,36 +225,55 @@ class BeatmapModel {
   }
 
   BeatmapModel.fromJson(Map<String, dynamic>? json) {
-    title = json?['title'];
-    composer = json?['composer'];
-    illustrator = json?['illustrator'];
-    beatmapper = json?['beatmapper'];
-    beatmapUID = json?['beatmapUID'];
-    difficulty = json?['difficulty'];
-    difficultyValue = json?['difficultyValue'];
-    audioFile = json?['audioFile'];
-    illustrationFile = json?['illustrationFile'];
-    source = json?['source'];
-    gameSource = json?['gameSource'];
-    previewTime = json?['previewTime'];
-    songLength = json?['songLength'];
+    title = json?['Title'];
+    composer = json?['Composer'];
+    illustrator = json?['Illustrator'];
+    beatmapper = json?['Beatmapper'];
+    beatmapUID = json?['BeatmapUID'];
+    difficulty = json?['Difficulty'];
+    difficultyValue = json?['DifficultyValue'];
+    audioFile = json?['AudioFile'];
+    illustrationFile = json?['IllustrationFile'];
+    source = json?['Source'];
+    gameSource = json?['GameSource'];
+    previewTime = json?['PreviewTime'];
+    songLength = json?['SongLength'];
+    songOffset = json?['SongOffset'];
+    formatVersion = json?['FormatVersion'];
+    sndSet = json?['SndSet'];
+
+    json?['BPMList'].forEach((v) {
+      bpmList.add(BPMData.fromJson(v));
+    });
+    json?['NoteList'].forEach((v) {
+      noteList.add(NoteData.fromJson(v));
+    });
+    json?['LineList'].forEach((v) {
+      lineList.add(LineData.fromJson(v));
+    });
   }
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = <String, dynamic>{};
-    data['title'] = title;
-    data['composer'] = composer;
-    data['illustrator'] = illustrator;
-    data['beatmapper'] = beatmapper;
-    data['beatmapUID'] = beatmapUID;
-    data['difficulty'] = difficulty;
-    data['difficultyValue'] = difficultyValue;
-    data['audioFile'] = audioFile;
-    data['illustrationFile'] = illustrationFile;
-    data['source'] = source;
-    data['gameSource'] = gameSource;
-    data['previewTime'] = previewTime;
-    data['songLength'] = songLength;
+    data['Title'] = title;
+    data['Composer'] = composer;
+    data['Illustrator'] = illustrator;
+    data['Beatmapper'] = beatmapper;
+    data['BeatmapUID'] = beatmapUID;
+    data['Difficulty'] = difficulty;
+    data['DifficultyValue'] = difficultyValue;
+    data['AudioFile'] = audioFile;
+    data['IllustrationFile'] = illustrationFile;
+    data['Source'] = source;
+    data['GameSource'] = gameSource;
+    data['PreviewTime'] = previewTime;
+    data['SongLength'] = songLength;
+    data['SongOffset'] = songOffset;
+    data['FormatVersion'] = formatVersion;
+    data['SndSet'] = sndSet;
+    data['BPMList'] = bpmList.map((v) => v.toJson()).toList();
+    data['NoteList'] = noteList.map((v) => v.toJson()).toList();
+    data['LineList'] = lineList.map((v) => v.toJson()).toList();
     return data;
   }
 }

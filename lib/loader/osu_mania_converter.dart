@@ -2,22 +2,36 @@ import 'dart:io';
 
 import 'package:filthm/model/beatmap.dart';
 
+import '../setting.dart';
+
 class OsuManiaConverter {
-  static bool convert(String path, String file, {double flowSpeed = 9.0}) {
-    List<String> data = File(file).readAsStringSync().split(RegExp(r'\n|\r'));
+  static bool convert(String path, String filePath, {double flowSpeed = 9.0}) {
+    File file = File(filePath);
+    List<String> data = file.readAsStringSync().split(RegExp(r'\n|\r'));
     bool start = false;
 
     BeatmapModel model = BeatmapModel()
       ..difficultyValue = -1
       ..illustrator = "Unknown"
       ..gameSource = "Osu!Mania"
-      ..songLength = -1;
+      ..songLength = -1
+      ..formatVersion = GameSettings.formatVersion;
 
     bool readBg = false;
     int lineCount = 4;
     for (String line in data) {
       if (line == "[HitObjects]") {
         break;
+      }
+      if (line.startsWith("SampleSet: ")) {
+        String set = line.split(':')[1].trim().toLowerCase();
+        if (set == "drum") {
+          model.sndSet = "osu-drum";
+        } else if (set == "soft") {
+          model.sndSet = "osu-soft";
+        } else if (set == "normal") {
+          model.sndSet = "osu-normal";
+        }
       }
 
       if (line.startsWith("TitleUnicode:")) {
@@ -64,7 +78,10 @@ class OsuManiaConverter {
 
       if (!line.startsWith("//") && readBg && !line.startsWith("Video")) {
         readBg = false;
-        model.illustrationFile = line.split('"')[1];
+        var ls = line.split('"');
+        if (ls.length > 1) {
+          model.illustrationFile = line.split('"')[1];
+        }
       }
 
       if (line.startsWith("Mode:")) {
@@ -74,15 +91,35 @@ class OsuManiaConverter {
       }
     }
 
-    model.bpmList.add(BPMData()
-      ..bpm = 600.0
-      ..from = 0
-      ..to = 0);
+    double lstBPM = 0;
+    bool timingpoint = false;
+    for (String line in data) {
+      if (line.startsWith("[") && timingpoint) {
+        break;
+      }
+      if (line == "[TimingPoints]") {
+        timingpoint = true;
+      }
+      if (timingpoint) {
+        // 1019,480,4,2,1,100,1,0
+        List<String> t = line.split(',');
+        if (t.length > 2) {
+          BPMData bpm = BPMData(
+            bpm: double.parse(t[1]),
+            start: double.parse(t[0]) / 1000,
+          );
+          if (bpm.bpm < 0) {
+            bpm.bpm = lstBPM * (-1) * bpm.bpm / 100;
+          } else {
+            lstBPM = bpm.bpm;
+          }
+          model.bpmList.add(bpm);
+        }
+      }
+    }
 
     for (int i = 0; i < lineCount; i++) {
-      model.lineList.add(LineData()
-        ..direction = LineDirection.up
-        ..flowSpeed = flowSpeed);
+      model.lineList.add(LineData(LineDirection.up, flowSpeed));
     }
 
     List<int> xs = [];
@@ -104,6 +141,7 @@ class OsuManiaConverter {
     start = false;
 
     for (String line in data) {
+      if (line.isEmpty) continue;
       if (start) {
         List<String> t = line.split(',');
         double from = double.tryParse(t[2]) ?? 1 / 1000, to;
@@ -113,11 +151,16 @@ class OsuManiaConverter {
           if (to == 0 || to <= from) {
             to = from;
           }
-          model.noteList.add(NoteData()
-            ..bpm = 0
-            ..line = l
-            ..from = model.convertByBPM(from, 100)
-            ..to = model.convertByBPM(to, 100));
+
+          model.noteList.add(
+            NoteData(
+              bpm: 0,
+              line: l,
+              from: model.convertByBPM(from, 100),
+              to: model.convertByBPM(to, 100),
+              snd: t.last.split(':').last,
+            ),
+          );
         } else {
           continue;
         }
@@ -125,7 +168,7 @@ class OsuManiaConverter {
       if (line == "[HitObjects]") start = true;
     }
 
-    model.export(path);
+    model.export('$filePath.milthm');
 
     return true;
   }

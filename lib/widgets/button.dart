@@ -204,7 +204,8 @@ class MyButtonState extends State<MyButton> with TickerProviderStateMixin {
                             : BoxShape.rectangle,
                         borderRadius: widget.isIcon
                             ? null
-                            : (widget.borderRadius ?? Setting.borderRadius),
+                            : (widget.borderRadius ??
+                                GameSettings.borderRadius),
                         color: (_hasFocus || _hovering)
                             ? theme.focusColor
                             : Colors.transparent,

@@ -180,7 +180,7 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                                   horizontal: 32,
                                 ),
                                 decoration: BoxDecoration(
-                                    borderRadius: Setting.borderRadius,
+                                    borderRadius: GameSettings.borderRadius,
                                     gradient: const LinearGradient(
                                       colors: [
                                         Color(0xffe8effd),
