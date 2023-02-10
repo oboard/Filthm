@@ -27,9 +27,12 @@ dependencies:
   just_audio: ^0.9.31
   animated_background: ^2.0.0
   meta: ^1.8.0
+  file_picker: ^5.2.5
   file_selector: ^0.9.2+2
   path_provider: ^2.0.12
   archive: ^3.3.6
+  cupertino_icons: ^1.0.5
+  flame: ^1.6.0
 
 dev_dependencies:
   flutter_test:

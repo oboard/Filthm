@@ -2,7 +2,8 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
-import 'package:file_selector/file_selector.dart';
+import 'package:file_picker/file_picker.dart';
+
 import 'package:filthm/loader/directory_create.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -12,18 +13,24 @@ import 'osu_mania_converter.dart';
 Future<void> pickSongFile() async {
   await checkAndCreateImportDictory();
 
-  const XTypeGroup typeGroup = XTypeGroup(
-    label: 'songs',
-    extensions: <String>['osz', 'mcz'], // 支持的文件
+  FilePickerResult? result = await FilePicker.platform.pickFiles(
+    type: FileType.any,
+    allowMultiple: true,
+    // allowedExtensions: ['osz', 'miz'],
   );
 
-  XFile? file = await openFile(acceptedTypeGroups: <XTypeGroup>[typeGroup]);
-  // 从磁盘读取Zip文件。
-  Uint8List? bytes = await file?.readAsBytes();
-  if (bytes == null) {
-    return;
+  if (result != null) {
+    for (var filePath in result.paths) {
+      if (filePath == null) continue;
+      if (filePath.endsWith('.osz') || filePath.endsWith('zip')) {
+        var file = File(filePath);
+        // 从磁盘读取Zip文件。
+        Uint8List bytes = await file.readAsBytes();
+        await archiveToImports(bytes);
+      }
+    }
   } else {
-    await archiveToImports(bytes);
+    // User canceled the picker
   }
 }
 
@@ -47,16 +54,14 @@ Future<void> archiveToImports(bytes) async {
             .split("[Editor]")[0]
             .split("Mode:")[1]
             .split('\n')[0]
-            .toString()
             .replaceAll("\r", "")
             .trim();
-        if (mode == "3") {
+        if (mode.contains("3")) {
           // Osu!Mania
           await importOsuMania('$appDocPath/milthm/imports/$id');
-          break;
         }
       } else if (file.name.toLowerCase().endsWith(".milthm")) {
-        break;
+        // break;
       }
     } else {
       await Directory('$appDocPath/milthm/imports/$id/${file.name}')
