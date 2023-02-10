@@ -63,6 +63,7 @@ class _SongPickerPageState extends State<SongPickerPage> {
       ?..stop()
       ..setFilePath(
           '${widget.beatmapModel.dirPath}/${widget.beatmapModel.audioFile ?? ''}')
+      ..seek(Duration(seconds: (widget.beatmapModel.previewTime ?? 0).round()))
       ..setLoopMode(LoopMode.one)
       ..play();
     super.initState();

@@ -14,25 +14,31 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'loader/file_picker.dart';
 
 AudioPlayer? gamePlayer;
 
-loadMusic() {
-  if (!Platform.isMacOS) {
-    if (gamePlayer != null) {
-      if (gamePlayer!.playing) {
-        gamePlayer?.stop();
-      }
+loadMusic() async {
+  // if (!Platform.isMacOS) {
+  if (gamePlayer != null) {
+    if (gamePlayer!.playing) {
+      gamePlayer?.stop();
     }
-    gamePlayer ??= AudioPlayer();
-    //发出提示音
-    gamePlayer
-      ?..setUrl('asset:///sounds/SongSelect.mp3')
-      ..setLoopMode(LoopMode.one)
-      ..play();
   }
+  gamePlayer ??= AudioPlayer();
+  var content = await rootBundle.load("sounds/SongSelect.mp3");
+  final directory = await getApplicationDocumentsDirectory();
+
+  var file = File("${directory.path}/SongSelect.mp3");
+  await file.writeAsBytes(content.buffer.asUint8List());
+  //发出提示音
+  gamePlayer
+    ?..setFilePath(file.path) //;..setUrl('asset:///sounds/SongSelect.mp3')
+    ..setLoopMode(LoopMode.one)
+    ..play();
+  // }
 }
 
 void main() {

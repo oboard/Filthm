@@ -29,6 +29,8 @@ class NoteData {
   int bpm = 60;
   String snd = '';
 
+  bool judged = false;
+
   NoteData({
     this.line = 0,
     this.from = const [],
@@ -181,27 +183,27 @@ class BeatmapModel {
     await file.writeAsString(jsonEncode(toJson()));
   }
 
-  int determineBPM(double time) {
+  double determineBPM(double time) {
     if (bpmList.length == 1) {
       return 0;
     } else {
-      int ret = 0;
+      double ret = 0;
       for (int i = 0; i < bpmList.length; i++) {
         if (time < bpmList[i].start) {
           break;
         } else {
-          ret = i;
+          ret = bpmList[i].bpm;
         }
       }
       return ret;
     }
   }
 
-  List<int> convertByBPM(double time, int beat, {int bpm = -1}) {
+  List<int> convertByBPM(double time, int beat, {double bpm = -1}) {
     if (bpm == -1) {
       bpm = determineBPM(time);
     }
-    BPMData bpmData = bpmList[bpm];
+    BPMData bpmData = bpmList.where((e) => e.bpm == bpm).toList()[0];
     double beattime = 60.0 / bpmData.bpm;
     int basebeat = (time - bpmData.start) ~/ beattime;
     return [

@@ -157,12 +157,13 @@ class OsuManiaConverter {
             to = from;
           }
 
+          double bpm = model.determineBPM(from);
           model.noteList.add(
             NoteData(
-              bpm: 0,
+              bpm: bpm.toInt(),
               line: l,
-              from: model.convertByBPM(from, 100),
-              to: model.convertByBPM(to, 100),
+              from: model.convertByBPM(from, 16, bpm: bpm),
+              to: model.convertByBPM(to, 16, bpm: bpm),
               snd: t.last.split(':').last,
             ),
           );
